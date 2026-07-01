@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>My App</title>
+
+<!-- PWA 아이콘 / 매니페스트 -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1b1d20" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="My App" />
+
+<link rel="stylesheet" href="style.css" />
+<script>
+  // 화면 그려지기 전에 미리 테마 적용 (깜빡임 방지)
+  (function () {
+    var saved = localStorage.getItem("app_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", saved);
+  })();
+</script>
+</head>
+<body>
+
+  <!-- ============ 비밀번호 화면 ============ -->
+  <div id="lock-screen" class="lock-screen">
+    <div class="lock-box">
+      <p class="lock-title">잠금 해제</p>
+      <div class="pin-dots">
+        <span class="dot" data-i="0"></span>
+        <span class="dot" data-i="1"></span>
+        <span class="dot" data-i="2"></span>
+        <span class="dot" data-i="3"></span>
+      </div>
+      <p id="lock-error" class="lock-error"></p>
+      <div class="keypad">
+        <button class="key" data-num="1">1</button>
+        <button class="key" data-num="2">2</button>
+        <button class="key" data-num="3">3</button>
+        <button class="key" data-num="4">4</button>
+        <button class="key" data-num="5">5</button>
+        <button class="key" data-num="6">6</button>
+        <button class="key" data-num="7">7</button>
+        <button class="key" data-num="8">8</button>
+        <button class="key" data-num="9">9</button>
+        <button class="key key-empty" disabled></button>
+        <button class="key" data-num="0">0</button>
+        <button class="key key-del" id="key-del">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 메인 앱 ============ -->
+  <div id="app" class="app hidden">
+
+    <header class="topbar">
+      <button id="menu-btn" class="menu-btn" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+      <h1 id="mode-title" class="mode-title">To-Do</h1>
+    </header>
+
+    <!-- 슬라이드 메뉴 -->
+    <div id="drawer-overlay" class="drawer-overlay hidden"></div>
+    <nav id="drawer" class="drawer">
+      <button class="drawer-close" id="drawer-close" aria-label="메뉴 닫기">×</button>
+      <ul class="drawer-list">
+        <li><button class="drawer-item active" data-mode="todo">✅ To-Do</button></li>
+        <li><button class="drawer-item" data-mode="diary">📔 Diary</button></li>
+        <li><button class="drawer-item" data-mode="memo">📝 Notes</button></li>
+      </ul>
+
+      <div class="drawer-divider"></div>
+
+      <div class="drawer-settings">
+        <p class="drawer-settings-label">설정</p>
+        <div class="theme-toggle">
+          <button id="theme-light-btn" class="theme-btn" data-theme="light">☀️ 라이트</button>
+          <button id="theme-dark-btn" class="theme-btn" data-theme="dark">🌙 다크</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 콘텐츠 영역: 모드별로 전환 -->
+    <main class="content">
+      <section id="view-todo" class="view active">
+        <div class="todo-layout">
+
+          <!-- 미니 캘린더: 날짜 선택 + 카테고리 색상 표시 -->
+          <div class="mini-cal">
+            <div class="mini-cal-header">
+              <button id="cal-prev" class="cal-nav" aria-label="이전 달">‹</button>
+              <span id="cal-month-label" class="cal-month-label"></span>
+              <button id="cal-next" class="cal-nav" aria-label="다음 달">›</button>
+            </div>
+            <div class="mini-cal-weekdays">
+              <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+            </div>
+            <div id="mini-cal-grid" class="mini-cal-grid"></div>
+          </div>
+
+          <div class="todo-right">
+            <!-- 선택한 날짜 -->
+            <div class="selected-date-row">
+              <span id="selected-date-label" class="selected-date-label"></span>
+            </div>
+
+            <!-- 카테고리 + 할일 목록 -->
+            <div id="category-list" class="category-list"></div>
+
+            <button id="add-category-btn" class="add-category-btn">+ 카테고리 추가</button>
+          </div>
+
+        </div>
+
+        <!-- 카테고리 추가/수정 모달 -->
+        <div id="category-modal" class="modal-overlay hidden">
+          <div class="modal-box">
+            <p class="modal-title" id="category-modal-title">카테고리 추가</p>
+            <input id="category-name-input" class="modal-input" type="text" placeholder="카테고리 이름 (예: study)" maxlength="20" />
+            <p class="modal-label">색상 선택</p>
+            <div id="color-picker" class="color-picker"></div>
+            <div class="modal-actions">
+              <button id="category-delete-btn" class="modal-btn modal-btn-danger hidden">삭제</button>
+
+              <button id="category-cancel-btn" class="modal-btn modal-btn-ghost">취소</button>
+              <button id="category-save-btn" class="modal-btn modal-btn-primary">저장</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <section id="view-diary" class="view">
+        <div class="diary-layout">
+
+          <!-- 캘린더 -->
+          <div class="mini-cal">
+            <div class="mini-cal-header">
+              <button id="diary-cal-prev" class="cal-nav" aria-label="이전 달">‹</button>
+              <span id="diary-cal-month-label" class="cal-month-label"></span>
+              <button id="diary-cal-next" class="cal-nav" aria-label="다음 달">›</button>
+            </div>
+            <div class="mini-cal-weekdays">
+              <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+            </div>
+            <div id="diary-cal-grid" class="mini-cal-grid"></div>
+          </div>
+
+          <div class="diary-right">
+
+            <!-- 일기 작성/수정 영역 -->
+            <div class="diary-editor">
+              <span id="diary-selected-date-label" class="selected-date-label"></span>
+
+              <!-- 보기 모드: 저장된 일기가 있을 때 기본으로 보여줌 -->
+              <div id="diary-view-block" class="diary-view-block hidden">
+                <div id="diary-view-icons" class="diary-view-icons"></div>
+                <div id="diary-view-rating" class="star-rating readonly"></div>
+                <p id="diary-view-text" class="diary-view-text"></p>
+                <div class="diary-editor-actions">
+                  <button id="diary-delete-btn" class="modal-btn modal-btn-danger">삭제</button>
+                  <button id="diary-edit-btn" class="modal-btn modal-btn-primary">수정</button>
+                </div>
+              </div>
+
+              <!-- 편집 모드: 새 일기를 쓰거나 수정 버튼을 눌렀을 때 -->
+              <div id="diary-edit-block" class="diary-edit-block hidden">
+                <p class="modal-label">오늘의 아이콘 (여러 개 선택 가능)</p>
+                <div id="diary-icon-tabs" class="diary-icon-tabs">
+                  <button type="button" class="diary-icon-tab active" data-cat="mood">기분</button>
+                  <button type="button" class="diary-icon-tab" data-cat="daily">일상</button>
+                </div>
+                <div id="diary-emoji-picker" class="emoji-picker"></div>
+
+                <p class="modal-label">기분 점수</p>
+                <div id="diary-star-rating" class="star-rating"></div>
+
+                <textarea id="diary-text" class="diary-textarea" placeholder="오늘 하루는 어땠나요?" rows="14"></textarea>
+
+                <div class="diary-editor-actions">
+                  <button id="diary-cancel-btn" class="modal-btn modal-btn-ghost hidden">취소</button>
+                  <button id="diary-save-btn" class="modal-btn modal-btn-primary">저장</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 월간 기분 그래프 -->
+            <div class="diary-graph-box">
+              <p class="modal-label">이번 달 기분 그래프</p>
+              <div id="diary-graph"></div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <section id="view-memo" class="view">
+
+        <!-- 메모 목록 화면 -->
+        <div id="memo-list-screen">
+          <div id="memo-list" class="memo-list"></div>
+          <button id="memo-new-btn" class="add-category-btn">+ 새 메모</button>
+        </div>
+
+        <!-- 메모 작성/수정 화면 -->
+        <div id="memo-editor-screen" class="hidden">
+          <div class="memo-editor-topbar">
+            <button id="memo-back-btn" class="memo-back-btn">‹ 목록</button>
+            <button id="memo-delete-btn" class="memo-del-link hidden">삭제</button>
+          </div>
+
+          <input id="memo-title-input" class="memo-title-input" type="text" placeholder="제목" maxlength="80" />
+
+          <div class="memo-size-toolbar">
+            <button class="size-btn" data-size="small">작게</button>
+            <button class="size-btn" data-size="normal">보통</button>
+            <button class="size-btn" data-size="large">크게</button>
+          </div>
+
+          <div id="memo-content" class="memo-content" contenteditable="true" data-placeholder="메모를 입력하세요"></div>
+        </div>
+
+      </section>
+    </main>
+
+  </div>
+
+  <!-- ============ 연도/월 선택 모달 (투두+일기 공용) ============ -->
+  <div id="ym-picker-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <p class="modal-title" id="ym-picker-title">연도 선택</p>
+      <div id="ym-picker-grid" class="ym-picker-grid"></div>
+      <div class="modal-actions">
+        <button id="ym-picker-cancel-btn" class="modal-btn modal-btn-ghost">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="theme.js"></script>
+  <script src="app.js"></script>
+  <script src="todo.js"></script>
+  <script src="diary.js"></script>
+  <script src="memo.js"></script>
+</body>
+</html>
