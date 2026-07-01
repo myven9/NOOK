@@ -1,6 +1,6 @@
 {
-  "name": "My App",
-  "short_name": "My App",
+  "name": "NOOK",
+  "short_name": "NOOK",
   "description": "개인용 투두리스트 / 일기 / 메모장",
   "start_url": "/",
   "scope": "/",
