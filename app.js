@@ -1,5 +1,5 @@
 // ===== 비밀번호 설정 (나중에 여기 숫자만 바꾸면 됨) =====
-const APP_PIN = "0000";
+const APP_PIN = "0606";
 
 let enteredPin = "";
 
